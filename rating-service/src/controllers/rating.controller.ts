@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { Rating } from '../models/rating.model';
-import { calculateNewRating, getActualScore } from '../utils/elo';
+import { calculateNewRating, getActualScore, calculateRatingChange } from '../utils/elo';
+import { getCachedLeaderboard, setCachedLeaderboard, invalidateLeaderboardCache } from '../utils/cache';
 
 export const updateRating = async (userId: string, opponentRating: number, result: 'win' | 'loss' | 'draw', timeControl: string = 'all') => {
   let rating = await Rating.findOne({ userId, timeControl });
@@ -92,23 +93,38 @@ export const getLeaderboard = async (req: AuthRequest, res: Response) => {
   try {
     const { timeControl = 'all', limit = 100 } = req.query;
 
+    const cacheKey = `${timeControl}:${limit}`;
+    const cached = await getCachedLeaderboard(cacheKey, Number(limit));
+    
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
     const ratings = await Rating.find({ timeControl })
       .sort({ rating: -1 })
       .limit(Number(limit));
 
+    const data = ratings.map((rating, index) => ({
+      rank: index + 1,
+      userId: rating.userId,
+      rating: rating.rating,
+      peakRating: rating.peakRating,
+      gamesPlayed: rating.gamesPlayed,
+      wins: rating.wins,
+      losses: rating.losses,
+      draws: rating.draws,
+      winRate: Math.round(rating.winRate * 100) / 100,
+    }));
+
+    await setCachedLeaderboard(cacheKey, Number(limit), data);
+
     res.json({
       success: true,
-      data: ratings.map((rating, index) => ({
-        rank: index + 1,
-        userId: rating.userId,
-        rating: rating.rating,
-        peakRating: rating.peakRating,
-        gamesPlayed: rating.gamesPlayed,
-        wins: rating.wins,
-        losses: rating.losses,
-        draws: rating.draws,
-        winRate: Math.round(rating.winRate * 100) / 100,
-      })),
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -136,6 +152,8 @@ export const recordGameResult = async (req: AuthRequest, res: Response) => {
     const userRating = await updateRating(userId, opponentRating, result, timeControl || 'all');
     const opponentResult = result === 'win' ? 'loss' : result === 'loss' ? 'win' : 'draw';
     await updateRating(opponentId, userRating.rating, opponentResult, timeControl || 'all');
+
+    await invalidateLeaderboardCache(timeControl || 'all');
 
     const oldRating = userRating.rating - calculateRatingChange(userRating.rating, opponentRating, getActualScore(result));
     const ratingChange = userRating.rating - oldRating;

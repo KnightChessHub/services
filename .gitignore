@@ -6,4 +6,12 @@ dist/
 .DS_Store
 coverage/
 .nyc_output/
+yarn.lock
+*.lock
+logs/
+*.pid
+*.seed
+*.pid.lock
+.npm
+.eslintcache
 

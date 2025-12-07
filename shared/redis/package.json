@@ -1,0 +1,8 @@
+{
+  "name": "@knightchess/redis",
+  "version": "1.0.0",
+  "main": "client.ts",
+  "dependencies": {
+    "redis": "^5.10.0"
+  }
+}

@@ -24,6 +24,9 @@ Complete microservices architecture for a chess platform.
 - **Admin Service** (Port 3017): Platform administration
 - **Activity Service** (Port 3018): User activity feed
 - **Report Service** (Port 3019): Content moderation and reporting
+- **Timer Service** (Port 3020): Game time control enforcement
+- **Job Service** (Port 3021): Background jobs and scheduled tasks
+- **Email Service** (Port 3022): Email notifications
 
 ## Setup
 
@@ -55,6 +58,9 @@ cp friend-service/.env.example friend-service/.env
 cp admin-service/.env.example admin-service/.env
 cp activity-service/.env.example activity-service/.env
 cp report-service/.env.example report-service/.env
+cp timer-service/.env.example timer-service/.env
+cp job-service/.env.example job-service/.env
+cp email-service/.env.example email-service/.env
 ```
 
 3. Configure environment variables in each `.env` file with your MongoDB connection strings and JWT secret.
@@ -81,6 +87,9 @@ yarn dev:friend
 yarn dev:admin
 yarn dev:activity
 yarn dev:report
+yarn dev:timer
+yarn dev:job
+yarn dev:email
 ```
 
 ## Database
@@ -105,6 +114,9 @@ The services use MongoDB. Each service has its own database:
 - Admin Service: `knightchess-admin`
 - Activity Service: `knightchess-activity`
 - Report Service: `knightchess-report`
+- Timer Service: `knightchess-timer`
+- Job Service: `knightchess-job`
+- Email Service: `knightchess-email`
 
 Make sure MongoDB is running before starting the services.
 
@@ -222,6 +234,21 @@ All endpoints are accessed through the API Gateway at `http://localhost:3000/api
 - `GET /api/reports/my` - Get my reports
 - `GET /api/reports` - Get all reports (query: ?status=pending&type=user)
 - `PUT /api/reports/:id/status` - Update report status (body: { status, moderatorNotes? })
+
+### Timers
+- `GET /api/timers/:gameId` - Get game timer
+- `POST /api/timers/:gameId/start` - Start timer
+- `POST /api/timers/:gameId/stop` - Stop timer (body: { player })
+- `POST /api/timers/:gameId/pause` - Pause timer
+
+### Jobs
+- `POST /api/jobs` - Create job (body: { type, data, scheduledAt? })
+- `GET /api/jobs` - Get jobs (query: ?type=cleanup&status=pending)
+- `POST /api/jobs/:id/execute` - Execute job
+
+### Email
+- `POST /api/email` - Send email (body: { to, subject, html, text, type? })
+- `GET /api/email` - Get email history (query: ?status=sent&type=welcome)
 
 ## Docker Deployment
 

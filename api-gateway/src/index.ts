@@ -38,6 +38,9 @@ const FRIEND_SERVICE_URL = process.env.FRIEND_SERVICE_URL || 'http://localhost:3
 const ADMIN_SERVICE_URL = process.env.ADMIN_SERVICE_URL || 'http://localhost:3017';
 const ACTIVITY_SERVICE_URL = process.env.ACTIVITY_SERVICE_URL || 'http://localhost:3018';
 const REPORT_SERVICE_URL = process.env.REPORT_SERVICE_URL || 'http://localhost:3019';
+const TIMER_SERVICE_URL = process.env.TIMER_SERVICE_URL || 'http://localhost:3020';
+const JOB_SERVICE_URL = process.env.JOB_SERVICE_URL || 'http://localhost:3021';
+const EMAIL_SERVICE_URL = process.env.EMAIL_SERVICE_URL || 'http://localhost:3022';
 
 const axiosInstance = axios.create({
   timeout: 10000,
@@ -878,6 +881,107 @@ app.put('/api/reports/:id/status', verifyToken, async (req, res) => {
   try {
     const response = await axiosInstance.put(`${REPORT_SERVICE_URL}/${req.params.id}/status`, req.body, {
       headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/timers/:gameId', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${TIMER_SERVICE_URL}/${req.params.gameId}`, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/timers/:gameId/start', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TIMER_SERVICE_URL}/${req.params.gameId}/start`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/timers/:gameId/stop', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TIMER_SERVICE_URL}/${req.params.gameId}/stop`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/timers/:gameId/pause', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TIMER_SERVICE_URL}/${req.params.gameId}/pause`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/jobs', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${JOB_SERVICE_URL}`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/jobs', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${JOB_SERVICE_URL}`, {
+      headers: { Authorization: req.headers.authorization },
+      params: req.query
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/jobs/:id/execute', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${JOB_SERVICE_URL}/${req.params.id}/execute`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/email', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${EMAIL_SERVICE_URL}`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/email', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${EMAIL_SERVICE_URL}`, {
+      headers: { Authorization: req.headers.authorization },
+      params: req.query
     });
     res.status(response.status).json(response.data);
   } catch (error: any) {

@@ -4,7 +4,7 @@
   "description": "KnightChess Microservices",
   "private": true,
   "scripts": {
-    "install:all": "yarn install && cd api-gateway && yarn install && cd ../auth-service && yarn install && cd ../user-service && yarn install && cd ../group-service && yarn install && cd ../game-service && yarn install && cd ../tournament-service && yarn install && cd ../analysis-service && yarn install && cd ../rating-service && yarn install && cd ../notification-service && yarn install && cd ../matchmaking-service && yarn install && cd ../statistics-service && yarn install && cd ../replay-service && yarn install && cd ../chat-service && yarn install && cd ../search-service && yarn install && cd ../realtime-service && yarn install && cd ../file-service && yarn install && cd ../friend-service && yarn install && cd ../admin-service && yarn install && cd ../activity-service && yarn install && cd ../report-service && yarn install",
+    "install:all": "yarn install && cd api-gateway && yarn install && cd ../auth-service && yarn install && cd ../user-service && yarn install && cd ../group-service && yarn install && cd ../game-service && yarn install && cd ../tournament-service && yarn install && cd ../analysis-service && yarn install && cd ../rating-service && yarn install && cd ../notification-service && yarn install && cd ../matchmaking-service && yarn install && cd ../statistics-service && yarn install && cd ../replay-service && yarn install && cd ../chat-service && yarn install && cd ../search-service && yarn install && cd ../realtime-service && yarn install && cd ../file-service && yarn install && cd ../friend-service && yarn install && cd ../admin-service && yarn install && cd ../activity-service && yarn install && cd ../report-service && yarn install && cd ../timer-service && yarn install && cd ../job-service && yarn install && cd ../email-service && yarn install",
     "dev:gateway": "cd api-gateway && yarn dev",
     "dev:auth": "cd auth-service && yarn dev",
     "dev:user": "cd user-service && yarn dev",
@@ -25,7 +25,19 @@
     "dev:admin": "cd admin-service && yarn dev",
     "dev:activity": "cd activity-service && yarn dev",
     "dev:report": "cd report-service && yarn dev",
-    "build:all": "cd api-gateway && yarn build && cd ../auth-service && yarn build && cd ../user-service && yarn build && cd ../group-service && yarn build && cd ../game-service && yarn build && cd ../tournament-service && yarn build && cd ../analysis-service && yarn build && cd ../rating-service && yarn build && cd ../notification-service && yarn build && cd ../matchmaking-service && yarn build && cd ../statistics-service && yarn build && cd ../replay-service && yarn build && cd ../chat-service && yarn build && cd ../search-service && yarn build && cd ../realtime-service && yarn build && cd ../file-service && yarn build && cd ../friend-service && yarn build && cd ../admin-service && yarn build && cd ../activity-service && yarn build && cd ../report-service && yarn build"
+    "dev:timer": "cd timer-service && yarn dev",
+    "dev:job": "cd job-service && yarn dev",
+    "dev:email": "cd email-service && yarn dev",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "build:all": "cd api-gateway && yarn build && cd ../auth-service && yarn build && cd ../user-service && yarn build && cd ../group-service && yarn build && cd ../game-service && yarn build && cd ../tournament-service && yarn build && cd ../analysis-service && yarn build && cd ../rating-service && yarn build && cd ../notification-service && yarn build && cd ../matchmaking-service && yarn build && cd ../statistics-service && yarn build && cd ../replay-service && yarn build && cd ../chat-service && yarn build && cd ../search-service && yarn build && cd ../realtime-service && yarn build && cd ../file-service && yarn build && cd ../friend-service && yarn build && cd ../admin-service && yarn build && cd ../activity-service && yarn build && cd ../report-service && yarn build && cd ../timer-service && yarn build && cd ../job-service && yarn build && cd ../email-service && yarn build"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6"
   }
 }
-
