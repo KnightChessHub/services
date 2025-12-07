@@ -73,6 +73,8 @@ export const getGame = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    const gameState = getGameState(game.fen);
+
     res.json({
       success: true,
       data: {
@@ -86,6 +88,7 @@ export const getGame = async (req: AuthRequest, res: Response) => {
         moves: game.moves,
         result: game.result,
         winnerId: game.winnerId,
+        gameState,
         createdAt: game.createdAt,
         startedAt: game.startedAt,
         finishedAt: game.finishedAt,
@@ -146,10 +149,6 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (!isValidSquare(from) || !isValidSquare(to)) {
-      return res.status(400).json({ error: 'Invalid square format' });
-    }
-
     const game = await Game.findById(id);
 
     if (!game) {
@@ -171,18 +170,41 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Not your turn' });
     }
 
+    const moveValidation = validateMove(game.fen, from, to, promotion);
+
+    if (!moveValidation.valid) {
+      return res.status(400).json({ error: moveValidation.error || 'Invalid move' });
+    }
+
     const move = {
       from,
       to,
       promotion,
+      san: moveValidation.san,
       timestamp: new Date(),
     };
 
     game.moves.push(move);
-    game.currentTurn = toggleTurn(game.currentTurn);
+    game.fen = moveValidation.newFen || game.fen;
+    game.currentTurn = game.currentTurn === 'white' ? 'black' : 'white';
     game.updatedAt = new Date();
 
+    const gameResult = isGameFinished(game.fen);
+
+    if (gameResult.finished) {
+      game.status = 'finished';
+      game.result = gameResult.result || null;
+      game.winnerId = gameResult.result === 'white_wins' 
+        ? game.whitePlayerId 
+        : gameResult.result === 'black_wins' 
+        ? game.blackPlayerId 
+        : undefined;
+      game.finishedAt = new Date();
+    }
+
     await game.save();
+
+    const gameState = getGameState(game.fen);
 
     res.json({
       success: true,
@@ -192,6 +214,9 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
         currentTurn: game.currentTurn,
         fen: game.fen,
         moves: game.moves,
+        status: game.status,
+        result: game.result,
+        gameState,
       },
     });
   } catch (error: any) {

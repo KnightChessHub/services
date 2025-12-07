@@ -1,6 +1,10 @@
 import { Response } from 'express';
+import axios from 'axios';
 import { AuthRequest } from '../middleware/auth';
 import { Tournament } from '../models/tournament.model';
+import { swissPairing, roundRobinPairing, eliminationPairing } from '../utils/pairing';
+
+const GAME_SERVICE_URL = process.env.GAME_SERVICE_URL || 'http://localhost:3004';
 
 export const createTournament = async (req: AuthRequest, res: Response) => {
   try {
@@ -248,6 +252,52 @@ export const startTournament = async (req: AuthRequest, res: Response) => {
     tournament.status = 'active';
     tournament.currentRound = 1;
 
+    let pairings: Array<{ whitePlayerId: string; blackPlayerId: string; roundNumber: number }> = [];
+
+    switch (tournament.format) {
+      case 'swiss':
+        pairings = swissPairing(tournament.participants, 1);
+        break;
+      case 'round_robin':
+        pairings = roundRobinPairing(tournament.participants, 1);
+        break;
+      case 'elimination':
+      case 'single_elimination':
+      case 'double_elimination':
+        pairings = eliminationPairing(tournament.participants, 1);
+        break;
+    }
+
+    const gameIds: string[] = [];
+
+    for (const pairing of pairings) {
+      try {
+        const gameResponse = await axios.post(
+          `${GAME_SERVICE_URL}`,
+          {
+            gameType: 'online',
+            blackPlayerId: pairing.blackPlayerId,
+          },
+          {
+            headers: { Authorization: req.headers.authorization },
+          }
+        );
+
+        if (gameResponse.data.success && gameResponse.data.data.id) {
+          gameIds.push(gameResponse.data.data.id);
+        }
+      } catch (error) {
+        console.error('Failed to create game for pairing:', error);
+      }
+    }
+
+    tournament.rounds.push({
+      roundNumber: 1,
+      games: gameIds,
+      status: gameIds.length > 0 ? 'active' : 'pending',
+      startedAt: new Date(),
+    });
+
     await tournament.save();
 
     res.json({
@@ -256,6 +306,7 @@ export const startTournament = async (req: AuthRequest, res: Response) => {
         id: tournament._id.toString(),
         status: tournament.status,
         currentRound: tournament.currentRound,
+        round: tournament.rounds[tournament.rounds.length - 1],
       },
     });
   } catch (error: any) {

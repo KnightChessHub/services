@@ -1,0 +1,254 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: knightchess-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - knightchess-network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: knightchess-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - GROUP_SERVICE_URL=http://group-service:3003
+      - GAME_SERVICE_URL=http://game-service:3004
+      - TOURNAMENT_SERVICE_URL=http://tournament-service:3005
+      - ANALYSIS_SERVICE_URL=http://analysis-service:3006
+      - RATING_SERVICE_URL=http://rating-service:3007
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3008
+      - MATCHMAKING_SERVICE_URL=http://matchmaking-service:3009
+      - STATISTICS_SERVICE_URL=http://statistics-service:3010
+      - REPLAY_SERVICE_URL=http://replay-service:3011
+      - CHAT_SERVICE_URL=http://chat-service:3012
+      - SEARCH_SERVICE_URL=http://search-service:3013
+    depends_on:
+      - auth-service
+      - user-service
+      - group-service
+      - game-service
+    networks:
+      - knightchess-network
+
+  auth-service:
+    build: ./auth-service
+    container_name: knightchess-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-auth
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  user-service:
+    build: ./user-service
+    container_name: knightchess-user-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-user
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  group-service:
+    build: ./group-service
+    container_name: knightchess-group-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-group
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  game-service:
+    build: ./game-service
+    container_name: knightchess-game-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-game
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  tournament-service:
+    build: ./tournament-service
+    container_name: knightchess-tournament-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-tournament
+      - GAME_SERVICE_URL=http://game-service:3004
+    depends_on:
+      - mongodb
+      - game-service
+    networks:
+      - knightchess-network
+
+  analysis-service:
+    build: ./analysis-service
+    container_name: knightchess-analysis-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-analysis
+      - GAME_SERVICE_URL=http://game-service:3004
+    depends_on:
+      - mongodb
+      - game-service
+    networks:
+      - knightchess-network
+
+  rating-service:
+    build: ./rating-service
+    container_name: knightchess-rating-service
+    ports:
+      - "3007:3007"
+    environment:
+      - PORT=3007
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-rating
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  notification-service:
+    build: ./notification-service
+    container_name: knightchess-notification-service
+    ports:
+      - "3008:3008"
+    environment:
+      - PORT=3008
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-notification
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  matchmaking-service:
+    build: ./matchmaking-service
+    container_name: knightchess-matchmaking-service
+    ports:
+      - "3009:3009"
+    environment:
+      - PORT=3009
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-matchmaking
+      - RATING_SERVICE_URL=http://rating-service:3007
+      - GAME_SERVICE_URL=http://game-service:3004
+    depends_on:
+      - mongodb
+      - rating-service
+      - game-service
+    networks:
+      - knightchess-network
+
+  statistics-service:
+    build: ./statistics-service
+    container_name: knightchess-statistics-service
+    ports:
+      - "3010:3010"
+    environment:
+      - PORT=3010
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-statistics
+      - GAME_SERVICE_URL=http://game-service:3004
+    depends_on:
+      - mongodb
+      - game-service
+    networks:
+      - knightchess-network
+
+  replay-service:
+    build: ./replay-service
+    container_name: knightchess-replay-service
+    ports:
+      - "3011:3011"
+    environment:
+      - PORT=3011
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-replay
+      - GAME_SERVICE_URL=http://game-service:3004
+    depends_on:
+      - mongodb
+      - game-service
+    networks:
+      - knightchess-network
+
+  chat-service:
+    build: ./chat-service
+    container_name: knightchess-chat-service
+    ports:
+      - "3012:3012"
+    environment:
+      - PORT=3012
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-chat
+    depends_on:
+      - mongodb
+    networks:
+      - knightchess-network
+
+  search-service:
+    build: ./search-service
+    container_name: knightchess-search-service
+    ports:
+      - "3013:3013"
+    environment:
+      - PORT=3013
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=mongodb://mongodb:27017/knightchess-search
+      - USER_SERVICE_URL=http://user-service:3002
+      - GAME_SERVICE_URL=http://game-service:3004
+      - TOURNAMENT_SERVICE_URL=http://tournament-service:3005
+      - GROUP_SERVICE_URL=http://group-service:3003
+    depends_on:
+      - mongodb
+      - user-service
+      - game-service
+      - tournament-service
+      - group-service
+    networks:
+      - knightchess-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  knightchess-network:
+    driver: bridge
+
