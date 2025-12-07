@@ -4,13 +4,15 @@
   "description": "KnightChess Microservices",
   "private": true,
   "scripts": {
-    "install:all": "yarn install && cd api-gateway && yarn install && cd ../auth-service && yarn install && cd ../user-service && yarn install && cd ../group-service && yarn install && cd ../game-service && yarn install",
+    "install:all": "yarn install && cd api-gateway && yarn install && cd ../auth-service && yarn install && cd ../user-service && yarn install && cd ../group-service && yarn install && cd ../game-service && yarn install && cd ../tournament-service && yarn install && cd ../analysis-service && yarn install",
     "dev:gateway": "cd api-gateway && yarn dev",
     "dev:auth": "cd auth-service && yarn dev",
     "dev:user": "cd user-service && yarn dev",
     "dev:group": "cd group-service && yarn dev",
     "dev:game": "cd game-service && yarn dev",
-    "build:all": "cd api-gateway && yarn build && cd ../auth-service && yarn build && cd ../user-service && yarn build && cd ../group-service && yarn build && cd ../game-service && yarn build"
+    "dev:tournament": "cd tournament-service && yarn dev",
+    "dev:analysis": "cd analysis-service && yarn dev",
+    "build:all": "cd api-gateway && yarn build && cd ../auth-service && yarn build && cd ../user-service && yarn build && cd ../group-service && yarn build && cd ../game-service && yarn build && cd ../tournament-service && yarn build && cd ../analysis-service && yarn build"
   }
 }
 

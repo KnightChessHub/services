@@ -1,6 +1,6 @@
 # KnightChess Microservices
 
-Microservices architecture with API Gateway, Auth Service, User Service, Group Service, and Game Service.
+Microservices architecture with API Gateway, Auth Service, User Service, Group Service, Game Service, Tournament Service, and Analysis Service.
 
 ## Services
 
@@ -9,6 +9,8 @@ Microservices architecture with API Gateway, Auth Service, User Service, Group S
 - **User Service** (Port 3002): Manages user data
 - **Group Service** (Port 3003): Manages groups and group members
 - **Game Service** (Port 3004): Manages chess games (online and offline)
+- **Tournament Service** (Port 3005): Manages chess tournaments
+- **Analysis Service** (Port 3006): Analyzes chess games
 
 ## Setup
 
@@ -25,6 +27,8 @@ cp auth-service/.env.example auth-service/.env
 cp user-service/.env.example user-service/.env
 cp group-service/.env.example group-service/.env
 cp game-service/.env.example game-service/.env
+cp tournament-service/.env.example tournament-service/.env
+cp analysis-service/.env.example analysis-service/.env
 ```
 
 3. Configure environment variables in each `.env` file with your MongoDB connection strings and JWT secret.
@@ -36,6 +40,8 @@ yarn dev:auth
 yarn dev:user
 yarn dev:group
 yarn dev:game
+yarn dev:tournament
+yarn dev:analysis
 ```
 
 ## Database
@@ -45,6 +51,8 @@ The services use MongoDB. Each service has its own database:
 - User Service: `knightchess-user`
 - Group Service: `knightchess-group`
 - Game Service: `knightchess-game`
+- Tournament Service: `knightchess-tournament`
+- Analysis Service: `knightchess-analysis`
 
 Make sure MongoDB is running before starting the services.
 
@@ -79,4 +87,18 @@ All endpoints are accessed through the API Gateway at `http://localhost:3000/api
 - `POST /api/games/:id/move` - Make a move (body: { from, to, promotion? })
 - `POST /api/games/:id/resign` - Resign from game
 - `POST /api/games/:id/join` - Join an online game (for black player)
+
+### Tournaments
+- `POST /api/tournaments` - Create tournament (body: { name, format, timeControl, maxParticipants, startDate, description?, prizePool? })
+- `GET /api/tournaments` - Get all tournaments (optional query: ?status=active)
+- `GET /api/tournaments/my` - Get user's tournaments (organized or participated)
+- `GET /api/tournaments/:id` - Get tournament by ID
+- `POST /api/tournaments/:id/join` - Join tournament
+- `POST /api/tournaments/:id/leave` - Leave tournament
+- `POST /api/tournaments/:id/start` - Start tournament (organizer only)
+
+### Analysis
+- `POST /api/analysis/analyze` - Analyze a finished game (body: { gameId })
+- `GET /api/analysis/my` - Get user's game analyses
+- `GET /api/analysis/:gameId` - Get analysis for a specific game
 

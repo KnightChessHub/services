@@ -19,6 +19,8 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001'
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3002';
 const GROUP_SERVICE_URL = process.env.GROUP_SERVICE_URL || 'http://localhost:3003';
 const GAME_SERVICE_URL = process.env.GAME_SERVICE_URL || 'http://localhost:3004';
+const TOURNAMENT_SERVICE_URL = process.env.TOURNAMENT_SERVICE_URL || 'http://localhost:3005';
+const ANALYSIS_SERVICE_URL = process.env.ANALYSIS_SERVICE_URL || 'http://localhost:3006';
 
 const axiosInstance = axios.create({
   timeout: 10000,
@@ -236,6 +238,117 @@ app.post('/api/games/:id/resign', verifyToken, async (req, res) => {
 app.post('/api/games/:id/join', verifyToken, async (req, res) => {
   try {
     const response = await axiosInstance.post(`${GAME_SERVICE_URL}/${req.params.id}/join`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/tournaments', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TOURNAMENT_SERVICE_URL}`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/tournaments', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${TOURNAMENT_SERVICE_URL}`, {
+      headers: { Authorization: req.headers.authorization },
+      params: req.query
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/tournaments/my', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${TOURNAMENT_SERVICE_URL}/my`, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/tournaments/:id', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${TOURNAMENT_SERVICE_URL}/${req.params.id}`, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/tournaments/:id/join', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TOURNAMENT_SERVICE_URL}/${req.params.id}/join`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/tournaments/:id/leave', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TOURNAMENT_SERVICE_URL}/${req.params.id}/leave`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/tournaments/:id/start', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${TOURNAMENT_SERVICE_URL}/${req.params.id}/start`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.post('/api/analysis/analyze', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.post(`${ANALYSIS_SERVICE_URL}/analyze`, req.body, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/analysis/my', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${ANALYSIS_SERVICE_URL}/my`, {
+      headers: { Authorization: req.headers.authorization }
+    });
+    res.status(response.status).json(response.data);
+  } catch (error: any) {
+    res.status(error.response?.status || 500).json(error.response?.data || { error: 'Internal server error' });
+  }
+});
+
+app.get('/api/analysis/:gameId', verifyToken, async (req, res) => {
+  try {
+    const response = await axiosInstance.get(`${ANALYSIS_SERVICE_URL}/${req.params.gameId}`, {
       headers: { Authorization: req.headers.authorization }
     });
     res.status(response.status).json(response.data);
