@@ -52,21 +52,56 @@ export const getRating = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    let rating = await Rating.findOne({ userId: targetId, timeControl });
+    // Use findOneAndUpdate with upsert to handle race conditions and duplicates
+    let rating = await Rating.findOneAndUpdate(
+      { userId: targetId, timeControl },
+      {
+        $setOnInsert: {
+          userId: targetId,
+          rating: 1200,
+          peakRating: 1200,
+          timeControl,
+          gamesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winRate: 0,
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      }
+    );
 
+    // If upsert created a duplicate due to race condition, find the existing one
     if (!rating) {
-      rating = new Rating({
-        userId: targetId,
-        rating: 1200,
-        peakRating: 1200,
-        timeControl,
-        gamesPlayed: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        winRate: 0,
-      });
-      await rating.save();
+      rating = await Rating.findOne({ userId: targetId, timeControl });
+      if (!rating) {
+        // Last resort: create with error handling
+        try {
+          rating = new Rating({
+            userId: targetId,
+            rating: 1200,
+            peakRating: 1200,
+            timeControl,
+            gamesPlayed: 0,
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            winRate: 0,
+          });
+          await rating.save();
+        } catch (saveError: any) {
+          // If duplicate key error, just fetch the existing one
+          if (saveError.code === 11000) {
+            rating = await Rating.findOne({ userId: targetId, timeControl });
+          } else {
+            throw saveError;
+          }
+        }
+      }
     }
 
     res.json({

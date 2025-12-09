@@ -13,20 +13,19 @@ export const createGame = async (req: AuthRequest, res: Response) => {
 
     const { gameType, blackPlayerId } = req.body;
 
-    if (gameType === 'online' && !blackPlayerId) {
-      return res.status(400).json({ error: 'blackPlayerId is required for online games' });
-    }
-
+    // Allow online games without blackPlayerId (for matchmaking - will be in 'pending' status)
+    // If blackPlayerId is provided, game starts immediately
     const game = new Game({
       gameType,
       whitePlayerId: userId,
-      blackPlayerId: gameType === 'online' ? blackPlayerId : userId,
-      status: gameType === 'offline' ? 'active' : 'pending',
+      blackPlayerId: gameType === 'online' ? (blackPlayerId || undefined) : userId,
+      status: gameType === 'offline' ? 'active' : (blackPlayerId ? 'active' : 'pending'),
       currentTurn: 'white',
       moves: [],
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     });
 
+    // Start game if offline or if online with both players
     if (gameType === 'offline' || (gameType === 'online' && blackPlayerId)) {
       game.status = 'active';
       game.startedAt = new Date();

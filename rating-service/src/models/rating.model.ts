@@ -17,7 +17,7 @@ export interface IRating extends Document {
 
 const RatingSchema = new Schema<IRating>(
   {
-    userId: { type: String, required: true, unique: true, index: true },
+    userId: { type: String, required: true, index: true },
     rating: { type: Number, default: 1200, index: true },
     peakRating: { type: Number, default: 1200 },
     gamesPlayed: { type: Number, default: 0 },
@@ -25,7 +25,7 @@ const RatingSchema = new Schema<IRating>(
     losses: { type: Number, default: 0 },
     draws: { type: Number, default: 0 },
     winRate: { type: Number, default: 0 },
-    timeControl: { type: String, enum: ['blitz', 'rapid', 'classical', 'bullet', 'all'], default: 'all' },
+    timeControl: { type: String, enum: ['blitz', 'rapid', 'classical', 'bullet', 'all'], default: 'all', index: true },
     lastUpdated: { type: Date, default: Date.now },
   },
   {
@@ -33,6 +33,8 @@ const RatingSchema = new Schema<IRating>(
   }
 );
 
+// Compound unique index on userId + timeControl
+RatingSchema.index({ userId: 1, timeControl: 1 }, { unique: true });
 RatingSchema.index({ rating: -1 });
 RatingSchema.index({ timeControl: 1, rating: -1 });
 
