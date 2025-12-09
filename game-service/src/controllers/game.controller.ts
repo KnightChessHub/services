@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { Game } from '../models/game.model';
-import { toggleTurn, isValidSquare } from '../utils/chess';
+import { Game, IGame } from '../models/game.model';
+import { toggleTurn, isValidSquare, getGameState, validateMove, isGameFinished } from '../utils/chess';
 
 export const createGame = async (req: AuthRequest, res: Response) => {
   try {
@@ -121,7 +121,7 @@ export const getMyGames = async (req: AuthRequest, res: Response) => {
     res.json({
       success: true,
       data: games.map((game) => ({
-        id: game._id.toString(),
+        id: (game as any)._id.toString(),
         gameType: game.gameType,
         status: game.status,
         whitePlayerId: game.whitePlayerId,
