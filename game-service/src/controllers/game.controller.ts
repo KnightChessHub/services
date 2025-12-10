@@ -467,15 +467,26 @@ export const joinGame = async (req: AuthRequest, res: Response) => {
     }
 
     // Use string comparison to handle ObjectId vs string
+    // Only compare if the player IDs actually exist (not null/undefined)
     const userIdStr = String(userId);
-    const whitePlayerIdStr = game.whitePlayerId ? String(game.whitePlayerId) : '';
-    const blackPlayerIdStr = game.blackPlayerId ? String(game.blackPlayerId) : '';
+    const whitePlayerIdStr = game.whitePlayerId ? String(game.whitePlayerId) : null;
+    const blackPlayerIdStr = game.blackPlayerId ? String(game.blackPlayerId) : null;
 
-    if (userIdStr === whitePlayerIdStr) {
+    // Debug logging
+    console.log('Join game check:', {
+      userId: userIdStr,
+      whitePlayerId: whitePlayerIdStr,
+      blackPlayerId: blackPlayerIdStr,
+      gameId: id,
+      gameStatus: game.status
+    });
+
+    // Only check if player IDs exist and match
+    if (whitePlayerIdStr && userIdStr === whitePlayerIdStr) {
       return res.status(400).json({ error: 'You are already in this game as white player' });
     }
 
-    if (userIdStr === blackPlayerIdStr) {
+    if (blackPlayerIdStr && userIdStr === blackPlayerIdStr) {
       return res.status(400).json({ error: 'You are already in this game as black player' });
     }
 
