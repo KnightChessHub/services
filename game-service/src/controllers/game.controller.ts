@@ -14,22 +14,48 @@ export const createGame = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { gameType, blackPlayerId } = req.body;
+    const { gameType, blackPlayerId, preferredSide } = req.body; // preferredSide: 'white' | 'black' | 'random'
 
-    // Allow online games without blackPlayerId (for matchmaking - will be in 'pending' status)
-    // If blackPlayerId is provided, game starts immediately
+    // Determine which side the creator wants to play
+    let whitePlayerId: string;
+    let blackPlayerIdFinal: string | undefined;
+    
+    if (gameType === 'offline') {
+      // Offline games: creator plays both sides
+      whitePlayerId = userId;
+      blackPlayerIdFinal = userId;
+    } else {
+      // Online games: determine side based on preferredSide
+      const side = preferredSide === 'random' 
+        ? (Math.random() < 0.5 ? 'white' : 'black')
+        : (preferredSide || 'white');
+      
+      if (side === 'white') {
+        whitePlayerId = userId;
+        blackPlayerIdFinal = blackPlayerId || undefined;
+      } else {
+        // Creator wants to play black, so they become blackPlayerId
+        whitePlayerId = blackPlayerId || undefined; // If blackPlayerId provided, they become white
+        blackPlayerIdFinal = userId;
+      }
+    }
+
+    // Allow online games without both players (for matchmaking - will be in 'pending' status)
+    // If both players are provided, game starts immediately
+    const hasBothPlayers = gameType === 'offline' || (whitePlayerId && blackPlayerIdFinal);
+    
     const game = new Game({
       gameType,
-      whitePlayerId: userId,
-      blackPlayerId: gameType === 'online' ? (blackPlayerId || undefined) : userId,
-      status: gameType === 'offline' ? 'active' : (blackPlayerId ? 'active' : 'pending'),
+      whitePlayerId,
+      blackPlayerId: blackPlayerIdFinal,
+      status: hasBothPlayers ? 'active' : 'pending',
       currentTurn: 'white',
       moves: [],
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     });
 
     // Start game if offline or if online with both players
-    if (gameType === 'offline' || (gameType === 'online' && blackPlayerId)) {
+    if (hasBothPlayers) {
       game.status = 'active';
       game.startedAt = new Date();
     }
@@ -440,15 +466,29 @@ export const joinGame = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Game is not available to join' });
     }
 
-    if (game.whitePlayerId === userId) {
-      return res.status(400).json({ error: 'You are already the white player' });
+    // Use string comparison to handle ObjectId vs string
+    const userIdStr = String(userId);
+    const whitePlayerIdStr = game.whitePlayerId ? String(game.whitePlayerId) : '';
+    const blackPlayerIdStr = game.blackPlayerId ? String(game.blackPlayerId) : '';
+
+    if (userIdStr === whitePlayerIdStr) {
+      return res.status(400).json({ error: 'You are already in this game as white player' });
     }
 
-    if (game.blackPlayerId) {
-      return res.status(400).json({ error: 'Game already has a black player' });
+    if (userIdStr === blackPlayerIdStr) {
+      return res.status(400).json({ error: 'You are already in this game as black player' });
     }
 
-    game.blackPlayerId = userId;
+    // Determine which side needs a player and join accordingly
+    if (!game.whitePlayerId) {
+      // White slot is empty, join as white
+      game.whitePlayerId = userId;
+    } else if (!game.blackPlayerId) {
+      // Black slot is empty, join as black
+      game.blackPlayerId = userId;
+    } else {
+      return res.status(400).json({ error: 'Game already has both players' });
+    }
     game.status = 'active';
     game.startedAt = new Date();
 
