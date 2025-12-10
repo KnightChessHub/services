@@ -5,6 +5,7 @@ import { Game, IGame } from '../models/game.model';
 import { toggleTurn, isValidSquare, getGameState, validateMove, isGameFinished } from '../utils/chess';
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+const REALTIME_SERVICE_URL = process.env.REALTIME_SERVICE_URL || 'http://localhost:3014';
 
 export const createGame = async (req: AuthRequest, res: Response) => {
   try {
@@ -292,12 +293,17 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Game is not active' });
     }
 
-    if (game.whitePlayerId !== userId && game.blackPlayerId !== userId) {
+    // Use string comparison to handle ObjectId vs string
+    const userIdStr = String(userId);
+    const whitePlayerIdStr = game.whitePlayerId ? String(game.whitePlayerId) : '';
+    const blackPlayerIdStr = game.blackPlayerId ? String(game.blackPlayerId) : '';
+
+    if (userIdStr !== whitePlayerIdStr && userIdStr !== blackPlayerIdStr) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
     const isWhiteTurn = game.currentTurn === 'white';
-    const isPlayerWhite = game.whitePlayerId === userId;
+    const isPlayerWhite = userIdStr === whitePlayerIdStr;
 
     if (isWhiteTurn !== isPlayerWhite) {
       return res.status(400).json({ error: 'Not your turn' });
@@ -367,6 +373,38 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
       }
     } catch (error) {
       console.error('Failed to fetch black player username:', error);
+    }
+
+    // Notify realtime service to broadcast the move (after fetching usernames)
+    try {
+      await axios.post(`${REALTIME_SERVICE_URL}/broadcast/game/${id}/move`, {
+        game: {
+          _id: game._id.toString(),
+          id: game._id.toString(),
+          gameType: game.gameType,
+          status: game.status,
+          whitePlayer: game.whitePlayerId,
+          whitePlayerId: game.whitePlayerId,
+          blackPlayer: game.blackPlayerId,
+          blackPlayerId: game.blackPlayerId,
+          whitePlayerUsername,
+          blackPlayerUsername,
+          currentTurn: game.currentTurn,
+          fen: game.fen,
+          moves: game.moves.map((m: any) => m.san || m),
+          result: game.result,
+          winnerId: game.winnerId,
+          timeControl: game.timeControl,
+          createdAt: game.createdAt,
+          updatedAt: game.updatedAt,
+          startedAt: game.startedAt,
+          finishedAt: game.finishedAt,
+        },
+        move,
+      });
+    } catch (error) {
+      console.error('Failed to broadcast move to realtime service:', error);
+      // Don't fail the request if broadcast fails
     }
 
     res.json({

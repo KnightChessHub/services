@@ -4,6 +4,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { healthRoutes } from './routes/health.routes';
+import { createBroadcastRoutes } from './routes/broadcast.routes';
 import { connectDB } from './db/client';
 import { authenticateSocket } from './middleware/socketAuth';
 import { SocketManager } from './utils/socketManager';
@@ -30,6 +31,9 @@ app.use('/health', healthRoutes);
 io.use(authenticateSocket);
 
 const socketManager = new SocketManager(io);
+
+// Broadcast routes for internal service communication
+app.use('/broadcast', createBroadcastRoutes(socketManager));
 
 io.on('connection', (socket: AuthenticatedSocket) => {
   socketManager.handleConnection(socket);
