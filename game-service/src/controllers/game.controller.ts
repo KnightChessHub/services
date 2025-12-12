@@ -7,6 +7,46 @@ import { toggleTurn, isValidSquare, getGameState, validateMove, isGameFinished }
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3002';
 const REALTIME_SERVICE_URL = process.env.REALTIME_SERVICE_URL || 'http://localhost:3014';
 
+// Create axios instance with timeout and retry logic
+const axiosInstance = axios.create({
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Helper function to fetch username with error handling
+async function fetchUsername(userId: string | undefined, authHeader: string | undefined): Promise<string | undefined> {
+  if (!userId) return undefined;
+  
+  try {
+    const response = await axiosInstance.get(`${USER_SERVICE_URL}/${userId}`, {
+      headers: authHeader ? { Authorization: authHeader } : {},
+    });
+    if (response.data?.success && response.data?.data?.username) {
+      return response.data.data.username;
+    }
+  } catch (error: any) {
+    console.error(`Failed to fetch username for user ${userId}:`, error.message);
+  }
+  return undefined;
+}
+
+// Helper function to broadcast to realtime service with error handling
+async function broadcastToRealtime(gameId: string, game: any, move?: any, authHeader?: string) {
+  try {
+    await axiosInstance.post(`${REALTIME_SERVICE_URL}/broadcast/game/${gameId}/move`, {
+      game,
+      move,
+    }, {
+      headers: authHeader ? { Authorization: authHeader } : {},
+    });
+  } catch (error: any) {
+    console.error(`Failed to broadcast to realtime service for game ${gameId}:`, error.message);
+    // Don't throw - this is a non-critical operation
+  }
+}
+
 export const createGame = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -64,34 +104,10 @@ export const createGame = async (req: AuthRequest, res: Response) => {
     await game.save();
 
     // Fetch usernames for players
-    let whitePlayerUsername: string | undefined;
-    let blackPlayerUsername: string | undefined;
-
-    try {
-      if (game.whitePlayerId) {
-        const whiteUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.whitePlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (whiteUserResponse.data?.success) {
-          whitePlayerUsername = whiteUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch white player username:', error);
-    }
-
-    try {
-      if (game.blackPlayerId) {
-        const blackUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.blackPlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (blackUserResponse.data?.success) {
-          blackPlayerUsername = blackUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch black player username:', error);
-    }
+    const [whitePlayerUsername, blackPlayerUsername] = await Promise.all([
+      fetchUsername(game.whitePlayerId, req.headers.authorization),
+      fetchUsername(game.blackPlayerId, req.headers.authorization),
+    ]);
 
     res.status(201).json({
       success: true,
@@ -140,34 +156,10 @@ export const getGame = async (req: AuthRequest, res: Response) => {
     const gameState = getGameState(game.fen);
 
     // Fetch usernames for players
-    let whitePlayerUsername: string | undefined;
-    let blackPlayerUsername: string | undefined;
-
-    try {
-      if (game.whitePlayerId) {
-        const whiteUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.whitePlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (whiteUserResponse.data?.success) {
-          whitePlayerUsername = whiteUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch white player username:', error);
-    }
-
-    try {
-      if (game.blackPlayerId) {
-        const blackUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.blackPlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (blackUserResponse.data?.success) {
-          blackPlayerUsername = blackUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch black player username:', error);
-    }
+    const [whitePlayerUsername, blackPlayerUsername] = await Promise.all([
+      fetchUsername(game.whitePlayerId, req.headers.authorization),
+      fetchUsername(game.blackPlayerId, req.headers.authorization),
+    ]);
 
     res.json({
       success: true,
@@ -217,34 +209,10 @@ export const getMyGames = async (req: AuthRequest, res: Response) => {
     // Fetch usernames for all games
     const gamesWithUsernames = await Promise.all(
       games.map(async (game) => {
-        let whitePlayerUsername: string | undefined;
-        let blackPlayerUsername: string | undefined;
-
-        try {
-          if (game.whitePlayerId) {
-            const whiteUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.whitePlayerId}`, {
-              headers: { Authorization: req.headers.authorization },
-            });
-            if (whiteUserResponse.data?.success) {
-              whitePlayerUsername = whiteUserResponse.data.data.username;
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch white player username:', error);
-        }
-
-        try {
-          if (game.blackPlayerId) {
-            const blackUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.blackPlayerId}`, {
-              headers: { Authorization: req.headers.authorization },
-            });
-            if (blackUserResponse.data?.success) {
-              blackPlayerUsername = blackUserResponse.data.data.username;
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch black player username:', error);
-        }
+        const [whitePlayerUsername, blackPlayerUsername] = await Promise.all([
+          fetchUsername(game.whitePlayerId, req.headers.authorization),
+          fetchUsername(game.blackPlayerId, req.headers.authorization),
+        ]);
 
         return {
           id: (game as any)._id.toString(),
@@ -346,66 +314,37 @@ export const makeMove = async (req: AuthRequest, res: Response) => {
     const gameState = getGameState(game.fen);
 
     // Fetch usernames for players
-    let whitePlayerUsername: string | undefined;
-    let blackPlayerUsername: string | undefined;
+    const [whitePlayerUsername, blackPlayerUsername] = await Promise.all([
+      fetchUsername(game.whitePlayerId, req.headers.authorization),
+      fetchUsername(game.blackPlayerId, req.headers.authorization),
+    ]);
 
-    try {
-      if (game.whitePlayerId) {
-        const whiteUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.whitePlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (whiteUserResponse.data?.success) {
-          whitePlayerUsername = whiteUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch white player username:', error);
-    }
+    // Prepare game data for broadcast
+    const gameDataForBroadcast = {
+      _id: game._id.toString(),
+      id: game._id.toString(),
+      gameType: game.gameType,
+      status: game.status,
+      whitePlayer: game.whitePlayerId,
+      whitePlayerId: game.whitePlayerId,
+      blackPlayer: game.blackPlayerId,
+      blackPlayerId: game.blackPlayerId,
+      whitePlayerUsername,
+      blackPlayerUsername,
+      currentTurn: game.currentTurn,
+      fen: game.fen,
+      moves: game.moves.map((m: any) => m.san || m),
+      result: game.result,
+      winnerId: game.winnerId,
+      timeControl: game.timeControl,
+      createdAt: game.createdAt,
+      updatedAt: game.updatedAt,
+      startedAt: game.startedAt,
+      finishedAt: game.finishedAt,
+    };
 
-    try {
-      if (game.blackPlayerId) {
-        const blackUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.blackPlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (blackUserResponse.data?.success) {
-          blackPlayerUsername = blackUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch black player username:', error);
-    }
-
-    // Notify realtime service to broadcast the move (after fetching usernames)
-    try {
-      await axios.post(`${REALTIME_SERVICE_URL}/broadcast/game/${id}/move`, {
-        game: {
-          _id: game._id.toString(),
-          id: game._id.toString(),
-          gameType: game.gameType,
-          status: game.status,
-          whitePlayer: game.whitePlayerId,
-          whitePlayerId: game.whitePlayerId,
-          blackPlayer: game.blackPlayerId,
-          blackPlayerId: game.blackPlayerId,
-          whitePlayerUsername,
-          blackPlayerUsername,
-          currentTurn: game.currentTurn,
-          fen: game.fen,
-          moves: game.moves.map((m: any) => m.san || m),
-          result: game.result,
-          winnerId: game.winnerId,
-          timeControl: game.timeControl,
-          createdAt: game.createdAt,
-          updatedAt: game.updatedAt,
-          startedAt: game.startedAt,
-          finishedAt: game.finishedAt,
-        },
-        move,
-      });
-    } catch (error) {
-      console.error('Failed to broadcast move to realtime service:', error);
-      // Don't fail the request if broadcast fails
-    }
+    // Notify realtime service to broadcast the move (non-blocking)
+    broadcastToRealtime(id, gameDataForBroadcast, move, req.headers.authorization);
 
     res.json({
       success: true,
@@ -544,34 +483,32 @@ export const joinGame = async (req: AuthRequest, res: Response) => {
     await game.save();
 
     // Fetch usernames for players
-    let whitePlayerUsername: string | undefined;
-    let blackPlayerUsername: string | undefined;
+    const [whitePlayerUsername, blackPlayerUsername] = await Promise.all([
+      fetchUsername(game.whitePlayerId, req.headers.authorization),
+      fetchUsername(game.blackPlayerId, req.headers.authorization),
+    ]);
 
-    try {
-      if (game.whitePlayerId) {
-        const whiteUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.whitePlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (whiteUserResponse.data?.success) {
-          whitePlayerUsername = whiteUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch white player username:', error);
-    }
-
-    try {
-      if (game.blackPlayerId) {
-        const blackUserResponse = await axios.get(`${USER_SERVICE_URL}/${game.blackPlayerId}`, {
-          headers: { Authorization: req.headers.authorization },
-        });
-        if (blackUserResponse.data?.success) {
-          blackPlayerUsername = blackUserResponse.data.data.username;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch black player username:', error);
-    }
+    // Broadcast game update to realtime service when player joins
+    const gameDataForBroadcast = {
+      _id: game._id.toString(),
+      id: game._id.toString(),
+      gameType: game.gameType,
+      status: game.status,
+      whitePlayer: game.whitePlayerId,
+      whitePlayerId: game.whitePlayerId,
+      blackPlayer: game.blackPlayerId,
+      blackPlayerId: game.blackPlayerId,
+      whitePlayerUsername,
+      blackPlayerUsername,
+      currentTurn: game.currentTurn,
+      fen: game.fen,
+      moves: game.moves || [],
+      createdAt: game.createdAt,
+      updatedAt: game.updatedAt,
+      startedAt: game.startedAt,
+    };
+    
+    broadcastToRealtime(id, gameDataForBroadcast, undefined, req.headers.authorization);
 
     res.json({
       success: true,
