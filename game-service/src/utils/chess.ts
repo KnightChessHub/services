@@ -1,4 +1,6 @@
-import { Chess } from 'chess.js';
+
+import { ChessGame } from '../engine/core/ChessGame';
+import { Color } from '../engine/core/types';
 
 export const isValidSquare = (square: string): boolean => {
   if (square.length !== 2) return false;
@@ -18,22 +20,32 @@ export const validateMove = (fen: string, from: string, to: string, promotion?: 
   newFen?: string;
 } => {
   try {
-    const chess = new Chess(fen);
-    
-    const move = chess.move({
-      from,
-      to,
-      promotion: promotion as any,
-    });
+    const game = new ChessGame(fen);
+    const moves = game.position.generateMoves();
+
+    const algebraicToSquare = (s: string) => {
+      const f = s.charCodeAt(0) - 'a'.charCodeAt(0);
+      const r = 8 - parseInt(s[1]);
+      return r * 8 + f;
+    };
+
+    const fromSq = algebraicToSquare(from);
+    const toSq = algebraicToSquare(to);
+
+    const move = moves.find(m => m.from === fromSq && m.to === toSq &&
+      (!promotion || (m.promotion === charToPieceType(promotion))));
 
     if (!move) {
       return { valid: false, error: 'Invalid move' };
     }
 
+    const san = game.moveToSan(move);
+    game.move(move);
+
     return {
       valid: true,
-      san: move.san,
-      newFen: chess.fen(),
+      san,
+      newFen: game.position.getFen(),
     };
   } catch (error: any) {
     return { valid: false, error: error.message || 'Invalid move' };
@@ -51,27 +63,18 @@ export const isGameFinished = (fen: string): {
   reason?: string;
 } => {
   try {
-    const chess = new Chess(fen);
+    const game = new ChessGame(fen);
+    const over = game.isGameOver();
 
-    if (chess.isCheckmate()) {
-      return {
-        finished: true,
-        result: chess.turn() === 'w' ? 'black_wins' : 'white_wins',
-        reason: 'checkmate',
-      };
-    }
-
-    if (chess.isDraw()) {
-      let reason = 'draw';
-      if (chess.isStalemate()) reason = 'stalemate';
-      else if (chess.isThreefoldRepetition()) reason = 'threefold_repetition';
-      else if (chess.isInsufficientMaterial()) reason = 'insufficient_material';
-      else if (chess.isDraw()) reason = 'fifty_move_rule';
+    if (over.over) {
+      let result: 'white_wins' | 'black_wins' | 'draw' = 'draw';
+      if (over.result === '1-0') result = 'white_wins';
+      else if (over.result === '0-1') result = 'black_wins';
 
       return {
         finished: true,
-        result: 'draw',
-        reason,
+        result,
+        reason: over.reason,
       };
     }
 
@@ -89,14 +92,16 @@ export const getGameState = (fen: string): {
   legalMoves: string[];
 } => {
   try {
-    const chess = new Chess(fen);
-    
+    const game = new ChessGame(fen);
+    const moves = game.position.generateMoves();
+    const over = game.isGameOver();
+
     return {
-      isCheck: chess.isCheck(),
-      isCheckmate: chess.isCheckmate(),
-      isDraw: chess.isDraw(),
-      isStalemate: chess.isStalemate(),
-      legalMoves: chess.moves({ verbose: true }).map((m) => `${m.from}${m.to}${m.promotion || ''}`),
+      isCheck: game.position.isAttacked(game.position.findKing(game.position.turn), game.position.turn === Color.WHITE ? Color.BLACK : Color.WHITE),
+      isCheckmate: over.reason === 'checkmate',
+      isDraw: over.over && over.reason !== 'checkmate',
+      isStalemate: over.reason === 'stalemate',
+      legalMoves: moves.map(m => `${squareToAlgebraic(m.from)}${squareToAlgebraic(m.to)}${m.promotion ? pieceTypeToChar(m.promotion) : ''}`),
     };
   } catch (error) {
     return {
@@ -108,3 +113,33 @@ export const getGameState = (fen: string): {
     };
   }
 };
+
+function charToPieceType(c: string) {
+  switch (c.toLowerCase()) {
+    case 'p': return 1;
+    case 'n': return 2;
+    case 'b': return 3;
+    case 'r': return 4;
+    case 'q': return 5;
+    case 'k': return 6;
+  }
+  return 0;
+}
+
+function pieceTypeToChar(t: number) {
+  switch (t) {
+    case 1: return 'p';
+    case 2: return 'n';
+    case 3: return 'b';
+    case 4: return 'r';
+    case 5: return 'q';
+    case 6: return 'k';
+  }
+  return '';
+}
+
+function squareToAlgebraic(sq: number): string {
+  const file = String.fromCharCode('a'.charCodeAt(0) + (sq % 8));
+  const rank = 8 - Math.floor(sq / 8);
+  return `${file}${rank}`;
+}
